@@ -1,10 +1,26 @@
 # LHE Density Analysis
 
-Quantum information analysis of spin density matrices generated with MadGraph5_aMC@NLO.
+Python analysis framework for quantum information observables computed from
+MadGraph5_aMC@NLO density matrix events.
 
-## Current Progress
+Current features
 
-- Single event analysis
+- Single-event analysis
 - Average observables
-- Statistical analysis
+- Statistical summaries
 - Histogram generation
+
+Observables
+
+- Purity
+- Concurrence
+- Entanglement of Formation
+- Negativity
+
+Future work
+
+- Correlation matrices
+- Event-by-event comparisons
+- Multiple run analysis
+- CSV export
+- APS-ready figures
