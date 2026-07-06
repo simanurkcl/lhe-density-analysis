@@ -23,4 +23,4 @@ Future work
 - Event-by-event comparisons
 - Multiple run analysis
 - CSV export
-- APS-ready figures
+- figures
