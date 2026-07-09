@@ -2,3 +2,4 @@ plots/
 event_data.csv
 __pycache__/
 *.pyc
+venv/
