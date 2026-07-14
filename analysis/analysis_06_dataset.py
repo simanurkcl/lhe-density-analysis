@@ -1,6 +1,12 @@
 import sys
+import os
 import math
 import csv
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+
 
 # Add MadGraph to Python path
 sys.path.append("/home/sima/mg5_density")
@@ -8,10 +14,9 @@ sys.path.append("/home/sima/mg5_density")
 import madgraph.various.Density_functions as dens
 import madgraph.various.lhe_parser as lhe_parser
 
-# LHE file
-lhe_path = "/home/sima/mg5_density/density_test2/Events/run_03/unweighted_events.lhe.gz"
-
-output_file = "event_data.csv"
+from config import LHE_PATH, EVENT_DATA
+lhe_path = LHE_PATH 
+output_file = EVENT_DATA
 
 with open(output_file, "w", newline="") as csvfile:
 
