@@ -1,6 +1,14 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-df = pd.read_csv("event_data.csv")
+
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from config import EVENT_DATA, PLOTS, PLOT_SUFFIX
+
+df = pd.read_csv(EVENT_DATA)
 quantum = df[
     [
         "Purity",
@@ -27,7 +35,12 @@ plt.title("Correlation Matrix")
 
 plt.tight_layout()
 
-plt.savefig("correlation_matrix.png", dpi=300)
+
+plt.savefig(
+    os.path.join(PLOTS, f"correlation_matrix_{PLOT_SUFFIX}.png"),
+    dpi=300
+)
+
 
 plt.show()
 print(df.describe())

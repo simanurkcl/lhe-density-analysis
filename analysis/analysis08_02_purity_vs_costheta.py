@@ -1,11 +1,19 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
+
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from config import EVENT_DATA, PLOTS, PLOT_SUFFIX
+
 # ==========================================================
 # Load dataset
 # ==========================================================
 
-df = pd.read_csv("event_data.csv")
+df = pd.read_csv(EVENT_DATA)
 
 # ==========================================================
 # Plot
@@ -29,7 +37,10 @@ plt.grid(True)
 
 plt.tight_layout()
 
-plt.savefig("plots/purity_vs_costheta.png", dpi=300)
+plt.savefig(
+    os.path.join(PLOTS, f"purity_vs_costheta_{PLOT_SUFFIX}.png"),
+    dpi=300
+)
 
 plt.show()
 

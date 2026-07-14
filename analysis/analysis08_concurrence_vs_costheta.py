@@ -1,8 +1,16 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
+
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from config import EVENT_DATA, PLOTS, PLOT_SUFFIX
+
 # Read data
-df = pd.read_csv("event_data.csv")
+df = pd.read_csv(EVENT_DATA)
 
 # Scatter plot
 plt.figure(figsize=(7,5))
@@ -22,6 +30,8 @@ plt.grid(True)
 
 plt.tight_layout()
 
-plt.savefig("concurrence_vs_costheta.png", dpi=300)
-
+plt.savefig(
+    os.path.join(PLOTS, f"concurrence_vs_costheta_{PLOT_SUFFIX}.png"),
+    dpi=300
+)
 plt.show()
