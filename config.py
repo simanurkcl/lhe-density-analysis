@@ -2,21 +2,27 @@
 # Analysis configuration
 # ==========================
 
-ENERGY = "365GeV"
+import os
 
-BASE = f"/home/sima/density_analysis/results/{ENERGY}"
+ENERGY = "500GeV"
 
-LHE_PATH = f"{BASE}/unweighted_events.lhe.gz"
+# MadGraph run klasörü (bunu her yeni run'da değiştir)
+MG5_RUN = "run_06"
 
-EVENT_DATA = f"{BASE}/event_data.csv"
+# MadGraph dosyaları
+LHE_PATH = f"/home/sima/mg5_density/density_test2/Events/{MG5_RUN}/unweighted_events.lhe.gz"
 
-PLOTS = f"{BASE}/plots"
+# Analiz çıktıları
+BASE_DIR = "/home/sima/density_analysis"
+RESULTS_DIR = os.path.join(BASE_DIR, "results")
 
-TABLES = f"{BASE}/tables"
+BASE = os.path.join(RESULTS_DIR, ENERGY)
+
+EVENT_DATA = os.path.join(BASE, "event_data.csv")
+PLOTS = os.path.join(BASE, "plots")
+TABLES = os.path.join(BASE, "tables")
 
 PLOT_SUFFIX = ENERGY
-
-import os
 
 os.makedirs(PLOTS, exist_ok=True)
 os.makedirs(TABLES, exist_ok=True)
