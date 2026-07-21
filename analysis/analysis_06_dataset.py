@@ -84,7 +84,7 @@ with open(output_file, "w", newline="") as csvfile:
         if momentum == 0:
             cos_theta = 0
         else:
-            cos_theta = top.pz / momentum
+            cos_theta = -top.pz / momentum
 
         writer.writerow([
             event_number,
