@@ -4,10 +4,10 @@
 
 import os
 
-ENERGY = "500GeV"
+ENERGY = "700GeV"
 
 # MadGraph run klasörü (bunu her yeni run'da değiştir)
-MG5_RUN = "run_06"
+MG5_RUN = "run_07"
 
 # MadGraph dosyaları
 LHE_PATH = f"/home/sima/mg5_density/density_test2/Events/{MG5_RUN}/unweighted_events.lhe.gz"
