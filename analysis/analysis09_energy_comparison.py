@@ -18,6 +18,7 @@ from config import RESULTS_DIR
 datasets = {
     "365 GeV": os.path.join(RESULTS_DIR, "365GeV", "event_data.csv"),
     "500 GeV": os.path.join(RESULTS_DIR, "500GeV", "event_data.csv"),
+    "700 GeV": os.path.join(RESULTS_DIR, "700GeV", "event_data.csv"),
     "1000 GeV": os.path.join(RESULTS_DIR, "1000GeV", "event_data.csv"),
 }
 
