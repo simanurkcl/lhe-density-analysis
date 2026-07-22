@@ -21,6 +21,9 @@ datasets = {
     "700 GeV": os.path.join(RESULTS_DIR, "700GeV", "event_data.csv"),
     "1000 GeV": os.path.join(RESULTS_DIR, "1000GeV", "event_data.csv"),
     "3000 GeV": os.path.join(RESULTS_DIR, "3000GeV", "event_data.csv"),
+    "1500 GeV": os.path.join(RESULTS_DIR, "1500GeV", "event_data.csv"),
+    "2000 GeV": os.path.join(RESULTS_DIR, "2000GeV", "event_data.csv"),
+    "2500 Gev": os.path.join(RESULTS_DIR, "2500GeV", "event_data.csv"),
 }
 
 
