@@ -23,39 +23,27 @@ datasets = {
     "500": os.path.join(RESULTS_DIR, "500GeV", "event_data.csv"),
     "700": os.path.join(RESULTS_DIR, "700GeV", "event_data.csv"),
     "1000": os.path.join(RESULTS_DIR, "1000GeV", "event_data.csv"),
-    "3000": os.path.join(RESULTS_DIR, "3000GeV", "event_data.csv"),
     "1500": os.path.join(RESULTS_DIR, "1500GeV", "event_data.csv"),
     "2000": os.path.join(RESULTS_DIR, "2000GeV", "event_data.csv"),
     "2500": os.path.join(RESULTS_DIR, "2500GeV", "event_data.csv"),
+    "3000": os.path.join(RESULTS_DIR, "3000GeV", "event_data.csv"),
 }
 
-# ==========================================================
-# OBSERVABLES
-# ==========================================================
-
-observables = [
-    "Concurrence",
-    "EOF",
-    "Negativity",
-    "Purity",
-]
-
-# ==========================================================
-# OUTPUT DIRECTORY
-# ==========================================================
+observables = ["Concurrence", "EOF", "Negativity", "Purity"]
 
 comparison_dir = os.path.join(RESULTS_DIR, "comparison")
 os.makedirs(comparison_dir, exist_ok=True)
 
-# ==========================================================
-# BINNING (identical to Analysis09 / Analysis10)
-# ==========================================================
-
 bins = np.linspace(-1, 1, 21)
 
-# Minimum number of events required in the peak bin for the
-# result to be considered statistically trustworthy.
 MIN_EVENTS_IN_PEAK_BIN = 50
+
+# Bootstrap settings (same as Analysis10 for consistency)
+N_BOOTSTRAP = 200
+RANDOM_SEED = 42
+CI_LOW, CI_HIGH = 16, 84
+
+rng = np.random.default_rng(RANDOM_SEED)
 
 
 # ==========================================================
@@ -63,12 +51,6 @@ MIN_EVENTS_IN_PEAK_BIN = 50
 # ==========================================================
 
 def get_binned_profile(df, observable):
-    """
-    Reconstructs the average angular distribution of `observable`
-    over cos_theta bins - the same curve shown in Analysis09.
-
-    Returns a dataframe with columns: bin, mean, count, center.
-    """
     df = df.copy()
     df["bin"] = pd.cut(df["cos_theta"], bins)
 
@@ -88,17 +70,10 @@ def get_binned_profile(df, observable):
 # ==========================================================
 
 def get_peak_magnitude(df, observable):
-    """
-    Identifies the bin with the largest binned-average value and
-    returns that maximum value together with the event count in
-    that bin (used as a reliability flag).
-
-    The peak is NOT taken from individual events (idxmax on raw
-    data), since single events are dominated by statistical
-    fluctuations. It is taken from the binned average curve,
-    exactly as plotted in Analysis09.
-    """
     grouped = get_binned_profile(df, observable)
+
+    if len(grouped) == 0:
+        return np.nan, 0
 
     idx = grouped["mean"].idxmax()
     peak_value = grouped.loc[idx, "mean"]
@@ -108,11 +83,29 @@ def get_peak_magnitude(df, observable):
 
 
 # ==========================================================
+# FUNCTION: bootstrap uncertainty on peak magnitude
+# ==========================================================
+
+def bootstrap_peak_magnitude(df, observable, n_bootstrap=N_BOOTSTRAP):
+    n_events = len(df)
+    peaks = np.empty(n_bootstrap)
+
+    for i in range(n_bootstrap):
+        sample_idx = rng.integers(0, n_events, n_events)
+        resampled = df.iloc[sample_idx]
+        peak_value, _ = get_peak_magnitude(resampled, observable)
+        peaks[i] = peak_value
+
+    return peaks
+
+
+# ==========================================================
 # MAIN LOOP
 # ==========================================================
 
 results = []
 reliability = []
+bootstrap_summary = []
 
 for energy, path in datasets.items():
 
@@ -132,6 +125,24 @@ for energy, path in datasets.items():
         row[observable] = peak_value
         rel_row[observable] = peak_count
 
+        print(f"  Bootstrapping {observable} ({N_BOOTSTRAP} iterations)...")
+        boot_peaks = bootstrap_peak_magnitude(df, observable)
+        boot_peaks = boot_peaks[~np.isnan(boot_peaks)]
+
+        err_low = peak_value - np.percentile(boot_peaks, CI_LOW)
+        err_high = np.percentile(boot_peaks, CI_HIGH) - peak_value
+        boot_std = np.std(boot_peaks, ddof=1)
+
+        bootstrap_summary.append({
+            "Energy (GeV)": int(energy),
+            "Observable": observable,
+            "peak_magnitude": peak_value,
+            "err_low": err_low,
+            "err_high": err_high,
+            "bootstrap_std": boot_std,
+            "n_bootstrap": len(boot_peaks),
+        })
+
     results.append(row)
     reliability.append(rel_row)
 
@@ -141,6 +152,7 @@ for energy, path in datasets.items():
 
 results_df = pd.DataFrame(results).sort_values("Energy (GeV)").reset_index(drop=True)
 reliability_df = pd.DataFrame(reliability).sort_values("Energy (GeV)").reset_index(drop=True)
+bootstrap_df = pd.DataFrame(bootstrap_summary).sort_values(["Observable", "Energy (GeV)"]).reset_index(drop=True)
 
 csv_path = os.path.join(comparison_dir, "peak_magnitudes.csv")
 results_df.to_csv(csv_path, index=False)
@@ -148,55 +160,64 @@ results_df.to_csv(csv_path, index=False)
 rel_csv_path = os.path.join(comparison_dir, "peak_magnitudes_reliability.csv")
 reliability_df.to_csv(rel_csv_path, index=False)
 
+boot_csv_path = os.path.join(comparison_dir, "peak_magnitudes_bootstrap.csv")
+bootstrap_df.to_csv(boot_csv_path, index=False)
+
 print(results_df)
 print("\nEvent counts in peak bin (reliability check):")
 print(reliability_df)
+print("\nBootstrap uncertainty summary:")
+print(bootstrap_df)
 print(f"\nSaved table -> {csv_path}")
 print(f"Saved reliability table -> {rel_csv_path}")
+print(f"Saved bootstrap table -> {boot_csv_path}")
 
 # ==========================================================
-# PLOT
+# PLOT (with bootstrap error bars, two panels like Analysis10)
 # ==========================================================
-# NOTE: Concurrence, EOF and Negativity are expected to overlap
-# almost perfectly (as found in Analysis09), so a small vertical
-# offset and distinct line styles are used purely for visual
-# separation - they do not alter the underlying values, which
-# are saved unmodified in peak_magnitudes.csv.
 
-plot_styles = {
-    "Concurrence": {"linestyle": "-", "offset": 0.0},
-    "EOF": {"linestyle": "--", "offset": 0.01},
-    "Negativity": {"linestyle": "-.", "offset": -0.01},
-    "Purity": {"linestyle": "-", "offset": 0.0},
-}
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
-plt.figure(figsize=(8, 6))
+offset_map = {"Concurrence": -20, "EOF": 0, "Negativity": 20, "Purity": 0}
+color_map = {"Concurrence": "tab:blue", "EOF": "tab:orange", "Negativity": "tab:green", "Purity": "tab:red"}
 
 for observable in observables:
-    style = plot_styles.get(observable, {"linestyle": "-", "offset": 0.0})
+    sub = bootstrap_df[bootstrap_df["Observable"] == observable].sort_values("Energy (GeV)")
+    x_shifted = sub["Energy (GeV)"] + offset_map[observable]
 
-    plt.plot(
-        results_df["Energy (GeV)"],
-        results_df[observable] + style["offset"],
-        marker="o",
-        linewidth=2,
-        linestyle=style["linestyle"],
-        label=observable,
+    ax1.errorbar(
+        x_shifted, sub["peak_magnitude"],
+        yerr=[sub["err_low"], sub["err_high"]],
+        marker="o", linewidth=2, elinewidth=1.5, capsize=4,
+        color=color_map[observable], label=observable,
     )
 
-    for _, r in reliability_df.iterrows():
-        if r[observable] < MIN_EVENTS_IN_PEAK_BIN:
-            e = r["Energy (GeV)"]
-            y = results_df.loc[results_df["Energy (GeV)"] == e, observable].values[0]
-            plt.scatter([e], [y + style["offset"]], facecolors="none", edgecolors="red",
-                        s=150, linewidths=1.5, zorder=5)
+ax1.set_xlabel(r"Center-of-Mass Energy $\sqrt{s}$ (GeV)")
+ax1.set_ylabel("Maximum Observable Value")
+ax1.set_title("Full range (small x-offsets to separate\noverlapping Concurrence/EOF/Negativity)")
+ax1.grid(True)
+ax1.legend()
 
-plt.xlabel(r"Center-of-Mass Energy $\sqrt{s}$ (GeV)")
-plt.ylabel("Maximum Observable Value")
-plt.title("Peak Magnitude Evolution of Quantum Information Observables\n"
-          "(red circles = low-statistics / less reliable point; small offsets applied for visual clarity)")
-plt.grid(True)
-plt.legend()
+for observable in observables:
+    sub = bootstrap_df[bootstrap_df["Observable"] == observable].sort_values("Energy (GeV)")
+    sub = sub[sub["Energy (GeV)"] >= 1000]
+    x_shifted = sub["Energy (GeV)"] + offset_map[observable]
+
+    ax2.errorbar(
+        x_shifted, sub["peak_magnitude"],
+        yerr=[sub["err_low"], sub["err_high"]],
+        marker="o", linewidth=2, elinewidth=1.5, capsize=4,
+        color=color_map[observable], label=observable,
+    )
+
+ax2.set_xlabel(r"Center-of-Mass Energy $\sqrt{s}$ (GeV)")
+ax2.set_ylabel("Maximum Observable Value")
+ax2.set_title("Zoomed: 1000-3000 GeV\n(error bars visible at this scale)")
+ax2.grid(True)
+ax2.legend()
+
+plt.suptitle("Peak Magnitude Evolution of Quantum Information Observables\n"
+             "(error bars = bootstrap 16-84 percentile)")
 plt.tight_layout()
 
 plot_path = os.path.join(comparison_dir, "peak_magnitude_evolution.png")
